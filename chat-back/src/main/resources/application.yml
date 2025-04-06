@@ -1,0 +1,57 @@
+spring:
+  webflux:
+    cors:
+      enabled: true
+  main:
+    allow-bean-definition-overriding: true
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/chat
+    username: postgres
+    password: 123
+    pool:
+      initial-size: 10
+      max-size: 100  # ??? ??? ??
+      max-idle-time: 30m
+      validation-query: SELECT 1
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=5000,expireAfterAccess=600s
+#  webflux:
+#    base-path: /api
+  data:
+    redis:
+      host: localhost
+      timeout: 2000
+      port: 6379
+      database: 0
+      lettuce:
+        pool:
+          max-active: 50
+          max-idle: 20
+          min-idle: 10
+
+
+
+logging:
+  level:
+    root: INFO
+    com.example.chat: DEBUG
+    org.springframework.r2dbc: INFO
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain
+    min-response-size: 1024
+
+
+app:
+  cache:
+    room-ttl: 3600
+    user-ttl: 3600
+  redis:
+    message-channel: chat:messages
+    room-channel-prefix: chat:room
+    user-presence-prefix: user:presence
+    message-history-size: 100  # ???? ??? ?? ??? ?
