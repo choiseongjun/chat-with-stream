@@ -1,0 +1,34 @@
+server:
+  port: 8080
+  netty:
+    max-initial-line-length: 65536
+    max-header-size: 65536
+    max-chunk-size: 65536
+    max-http-content-length: 65536
+    idle-timeout: 30000
+
+spring:
+  web:
+    resources:
+      add-mappings: false # ?? ??? ?? ????
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/chat-db-java
+    username: postgres
+    password: 123
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 10000
+      connect-timeout: 10000
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web.reactive: INFO
+    reactor.netty: INFO
+    com.seongjun.chatbackstress: DEBUG

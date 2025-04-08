@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS chat_message (
+    id BIGSERIAL PRIMARY KEY,
+    room_id VARCHAR(255) NOT NULL,
+    sender VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    timestamp TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+); 
