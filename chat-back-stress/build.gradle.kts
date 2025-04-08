@@ -35,6 +35,8 @@ dependencies {
     }
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
+// https://mvnrepository.com/artifact/org.projectlombok/lombok
+//    compileOnly("org.projectlombok:lombok:1.18.38")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("io.projectreactor:reactor-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -52,6 +54,16 @@ dependencies {
     implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
     implementation("org.springframework.boot:spring-boot-starter-cache")
 
+    // 모니터링 의존성 추가
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("io.micrometer:micrometer-registry-prometheus")
+    implementation("io.micrometer:micrometer-tracing-bridge-brave")
+
+//    implementation("ch.qos.logback:logback-classic:1.5.6")
+//    implementation("ch.qos.logback:logback-core:1.5.6")
+//    implementation("org.slf4j:slf4j-api:2.1.0-alpha1")
+
+    implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.15.2")
 }
 
 tasks.withType<Test> {

@@ -8,9 +8,10 @@ import io.micrometer.observation.ObservationFilter;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.connection.ReactiveSubscription;
+import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
 import org.springframework.data.redis.core.ReactiveRedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
+import org.springframework.data.redis.listener.ReactiveRedisMessageListenerContainer;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.socket.WebSocketMessage;
 import org.springframework.web.reactive.socket.WebSocketSession;
@@ -29,10 +30,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class RedisPubSubService {
     private final ReactiveRedisTemplate<String, String> redisTemplate;
+    private final ReactiveRedisConnectionFactory connectionFactory;
     private final ObjectMapper objectMapper;
     private final ChatSessionManager sessionManager;
-    private final Map<String, Sinks.Many<String>> sinkMap = new ConcurrentHashMap<>();
-    private ReactiveSubscription subscription;
+    private final Map<String, Sinks.Many<String>> sinks = new ConcurrentHashMap<>();
+    private final ReactiveRedisMessageListenerContainer container;
 
     @PostConstruct
     public void subscribe() {
@@ -45,7 +47,7 @@ public class RedisPubSubService {
                     // 해당 방의 세션들에게만 메시지 전달
                     sessionManager.getSessions(roomId).forEach(session -> {
                         String sessionId = session.getId();
-                        Sinks.Many<String> sink = sinkMap.get(sessionId);
+                        Sinks.Many<String> sink = sinks.get(sessionId);
                         if (sink != null && session.isOpen()) {
                             sink.tryEmitNext(message.getMessage());
                         }
@@ -61,11 +63,11 @@ public class RedisPubSubService {
 
     public void publishMessage(WebSocketMessageDto message) {
         try {
-            String json = objectMapper.writeValueAsString(message);
-            redisTemplate.convertAndSend("chat", json)
-                .doOnError(error -> log.error("Error publishing message: {}", error.getMessage()))
-                .subscribe();
-        } catch (JsonProcessingException e) {
+            String jsonMessage = objectMapper.writeValueAsString(message);
+            redisTemplate.convertAndSend("chat", jsonMessage)
+                    .doOnError(e -> log.error("Error publishing message: {}", e.getMessage()))
+                    .subscribe();
+        } catch (Exception e) {
             log.error("Error serializing message: {}", e.getMessage());
         }
     }
@@ -84,21 +86,26 @@ public class RedisPubSubService {
                 .doOnError(Throwable::printStackTrace);
     }
 
-    public Flux<String> getMessageStream(WebSocketSession session) {
-        return redisTemplate.listenTo(ChannelTopic.of("chat"))
-                .map(message -> message.getMessage());
+    public Flux<String> getMessageStream() {
+        return container.receive(ChannelTopic.of("chat"))
+                .map(message -> message.getMessage())
+                .doOnError(e -> log.error("Error in message stream: {}", e.getMessage()));
     }
 
     public void registerSink(String sessionId, Sinks.Many<String> sink) {
-        sinkMap.put(sessionId, sink);
-        log.info("Registered sink for session: {}", sessionId);
+        sinks.put(sessionId, sink);
+        
+        // Redis 채널 구독
+        container.receive(ChannelTopic.of("chat"))
+                .map(message -> message.getMessage())
+                .doOnNext(message -> {
+                    sinks.values().forEach(s -> s.tryEmitNext(message));
+                })
+                .doOnError(e -> log.error("Error in Redis subscription: {}", e.getMessage()))
+                .subscribe();
     }
 
     public void unregisterSink(String sessionId) {
-        Sinks.Many<String> sink = sinkMap.remove(sessionId);
-        if (sink != null) {
-            sink.tryEmitComplete();
-        }
-        log.info("Unregistered sink for session: {}", sessionId);
+        sinks.remove(sessionId);
     }
 }

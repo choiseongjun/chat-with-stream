@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chat-back-stress
+  labels:
+    app: chat-back-stress
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: chat-back-stress
+  template:
+    metadata:
+      labels:
+        app: chat-back-stress
+    spec:
+      containers:
+        - name: chat-back-stress
+          image: chat-back-stress:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_REDIS_HOST
+              value: "redis-service"
+            - name: SPRING_REDIS_PORT
+              value: "6379"
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://postgres-service:5432/chatdb"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "postgres"
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: password
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 15

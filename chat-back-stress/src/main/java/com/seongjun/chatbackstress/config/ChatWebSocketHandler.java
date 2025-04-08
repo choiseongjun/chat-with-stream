@@ -1,12 +1,15 @@
 package com.seongjun.chatbackstress.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.seongjun.chatbackstress.dto.WebSocketMessageDto;
 import com.seongjun.chatbackstress.service.ChatService;
 import com.seongjun.chatbackstress.service.RedisPubSubService;
 import com.seongjun.chatbackstress.utils.ChatSessionManager;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.socket.WebSocketHandler;
 import org.springframework.web.reactive.socket.WebSocketMessage;
@@ -19,14 +22,20 @@ import reactor.util.retry.Retry;
 import java.time.Duration;
 import java.time.LocalDateTime;
 
-@Slf4j
 @Component
 @RequiredArgsConstructor
 public class ChatWebSocketHandler implements WebSocketHandler {
+    private static final Logger log = LoggerFactory.getLogger(ChatWebSocketHandler.class);
+    
     private final ObjectMapper objectMapper;
     private final RedisPubSubService redisPubSubService;
     private final ChatService chatService;
     private final ChatSessionManager sessionManager;
+
+    @PostConstruct
+    public void init() {
+        objectMapper.registerModule(new JavaTimeModule());
+    }
 
     @Override
     public Mono<Void> handle(WebSocketSession session) {

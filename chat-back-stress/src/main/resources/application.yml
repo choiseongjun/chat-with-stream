@@ -26,6 +26,25 @@ spring:
       timeout: 10000
       connect-timeout: 10000
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,prometheus
+  metrics:
+    tags:
+      application: chat-back-stress
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      sla:
+        http.server.requests: 1ms,10ms,100ms,1s
+    enable:
+      jvm: true
+      process: true
+      system: true
+      http: true
+
 logging:
   level:
     root: INFO
